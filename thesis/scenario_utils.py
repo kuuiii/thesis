@@ -1,10 +1,10 @@
-# scenario_utils.py
-
 import os
 import random
 import shutil
 from ruamel.yaml import YAML
 import hashlib
+import csv
+from pathlib import Path
 
 # === Lane Definitions (same as in scenario_generator.py) ===
 START_LANE_IDS = {
@@ -84,47 +84,77 @@ def crossover_batches(parent_batch_a, parent_batch_b, crossover_rate=0.5):
         child_batch.append(tuple(child_scenario))
     return child_batch
 
-def mutate_batch(batch, mutation_rate=0.3, seen=None):
-    mutated_batch = []
-    for params in batch:
-        attempts = 0
-        while attempts < 10:
-            mutated = list(params)
-
-            if random.random() < mutation_rate:
-                mutated[0] = random.choice(list(START_LANE_IDS.keys()))
-                mutated[1] = round(random.uniform(START_LANE_IDS[mutated[0]][1] - 5.0, START_LANE_IDS[mutated[0]][1]), 2)
-            if random.random() < mutation_rate:
-                mutated[2] = random.choice([l for l in START_LANE_IDS if l != mutated[0]])
-                mutated[3] = round(random.uniform(START_LANE_IDS[mutated[2]][1] - 5.0, START_LANE_IDS[mutated[2]][1]), 2)
-            if random.random() < mutation_rate:
-                mutated[4] = random.choice(list(DEST_LANE_IDS.keys()))
-                mutated[5] = round(random.uniform(*DEST_LANE_IDS[mutated[4]]), 2)
-            if random.random() < mutation_rate:
-                mutated[6] = random.choice(list(DEST_LANE_IDS.keys()))
-                mutated[7] = round(random.uniform(*DEST_LANE_IDS[mutated[6]]), 2)
-
-            if not positions_overlap(mutated[1], EGO_LENGTH, mutated[3], NPC_LENGTH):
-                hash_val = round_scenario_hash(tuple(mutated))
-                if seen is None or hash_val not in seen:
-                    if seen is not None:
-                        seen.add(hash_val)
-                    mutated_batch.append(tuple(mutated))
+def mutate_batch(params, seen: set,
+                 mutation_rate: float = 0.1,
+                 max_delta: float = 5.0,
+                 min_delta: float = 0.5,
+                 lane_mutation_rate: float = 0.05) -> list:
+    """
+    Mutate each scenario parameter with a given probability, ensuring any float mutation
+    differs by at least min_delta, and optionally mutate lane IDs.
+    Also enforce within-batch uniqueness.
+    """
+    new_params = []
+    for param_tuple in params:
+        if random.random() < mutation_rate:
+            attempts = 0
+            while True:
+                mutated = []
+                for idx, val in enumerate(param_tuple):
+                    # Float positions mutated by delta
+                    if isinstance(val, float):
+                        delta = random.uniform(-max_delta, max_delta)
+                        if abs(delta) < min_delta:
+                            delta = min_delta if delta >= 0 else -min_delta
+                        mutated.append(val + delta)
+                    # Lane IDs mutated with small probability
+                    else:
+                        if idx in (0, 2) and random.random() < lane_mutation_rate:
+                            mutated.append(random.choice(list(START_LANE_IDS.keys())))
+                        elif idx in (4, 6) and random.random() < lane_mutation_rate:
+                            mutated.append(random.choice(list(DEST_LANE_IDS.keys())))
+                        else:
+                            mutated.append(val)
+                mutated_tuple = tuple(mutated)
+                h = round_scenario_hash(mutated_tuple)
+                attempts += 1
+                if h not in seen:
+                    seen.add(h)
+                    new_params.append(mutated_tuple)
                     break
-
-            attempts += 1
-
+                if attempts > 10:
+                    new_params.append(param_tuple)
+                    break
         else:
-            mutated_batch.append(params)
+            new_params.append(param_tuple)
 
-    return mutated_batch
+    # Enforce within-batch uniqueness and fill if needed
+    unique = []
+    local_hashes = set()
+    for p in new_params:
+        h = round_scenario_hash(p)
+        if h not in local_hashes:
+            unique.append(p)
+            local_hashes.add(h)
+    # refill batch if too few
+    idx = 0
+    while len(unique) < len(params):
+        candidate = params[idx % len(params)]
+        h = round_scenario_hash(candidate)
+        if h not in local_hashes:
+            unique.append(candidate)
+            local_hashes.add(h)
+        idx += 1
+    return unique
 
 def round_scenario_hash(params):
-    key = "-".join([str(round(float(p), 1)) if isinstance(p, float) else str(p) for p in params])
+    key = "-".join(
+        str(round(p, 1)) if isinstance(p, float) else str(p)
+        for p in params
+    )
     return hashlib.sha256(key.encode()).hexdigest()
 
 def read_collision_rate(csv_path):
-    import csv
     total = 0
     collisions = 0
     try:

@@ -3,10 +3,12 @@ import os
 import xml.etree.ElementTree as ET
 import csv
 from pathlib import Path
-import csv
 import re
 import shutil
 from datetime import datetime
+
+# launch_scenario.py (near top, after imports)
+MINED_BASE = Path("/ros2_ws/mined_scenarios")
 
 def run_simulation(scenario_path, output_dir="/autoware_map", log_output=True, csv_path="simulation_results.csv"):
     command = [
@@ -32,14 +34,22 @@ def run_simulation(scenario_path, output_dir="/autoware_map", log_output=True, c
     result_xml_path = os.path.join(output_dir, "scenario_test_runner", "result.junit.xml")
     result = parse_result_xml(result_xml_path)
 
-    # Save collision scenario to /ros2_ws/mined_scenarios/ - change this!!
+    # --- collision handling, per-batch mined folder ---
     if result["collision"]:
-        dest_dir = "/mp_thesis/thesis/mined_scenarios"
-        os.makedirs(dest_dir, exist_ok=True)
-        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        dest_name = f"collision_scenario_{timestamp}.yaml"
-        shutil.copy(scenario_path, os.path.join(dest_dir, dest_name))
-        print(f"[💥] Collision detected! Saved to {dest_dir}/{dest_name}")
+        # derive the batch_info string from your results CSV name
+        batch_info = Path(csv_path).stem
+        if batch_info.endswith("_results"):
+            batch_info = batch_info[:-len("_results")]
+
+        # make sure the per-batch mined dir exists
+        mined_dir = MINED_BASE / batch_info
+        mined_dir.mkdir(parents=True, exist_ok=True)
+
+        # copy the .yaml into it with a timestamp
+        ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        dest = mined_dir / f"collision_{ts}.yaml"
+        shutil.copy(scenario_path, dest)
+        print(f"[💥] Collision detected! Saved to {dest}")
 
     # Extract lane and distance info
     params = extract_scenario_parameters(scenario_path)

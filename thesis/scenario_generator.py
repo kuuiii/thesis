@@ -109,4 +109,4 @@ def generate_batch(template_path, output_dir, count=5):
 if __name__ == "__main__":
     template_path = "/autoware_map/template.yaml"
     output_dir = "/autoware_map/generated_scenarios"
-    generate_batch(template_path, output_dir, count=10)
+    generate_batch(template_path, output_dir, count=100)
