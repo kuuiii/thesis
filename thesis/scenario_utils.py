@@ -85,10 +85,11 @@ def crossover_batches(parent_batch_a, parent_batch_b, crossover_rate=0.5):
     return child_batch
 
 def mutate_batch(params, seen: set,
-                 mutation_rate: float = 0.1,
-                 max_delta: float = 5.0,
-                 min_delta: float = 0.5,
-                 lane_mutation_rate: float = 0.05) -> list:
+                 mutation_rate: float = 0.80,       # mutate 30% of scenarios
+                 max_delta: float = 15.0,           # ±10 m shifts
+                 min_delta: float = 2.0,            # at least 1 m change
+                 lane_mutation_rate: float = 0.40   # 20% chance to swap lanes
+                 ) -> list: 
     """
     Mutate each scenario parameter with a given probability, ensuring any float mutation
     differs by at least min_delta, and optionally mutate lane IDs.
