@@ -1,0 +1,52 @@
+[INFO] [launch]: All log files can be found below /root/.ros/log/2025-05-30-10-05-01-774120-40b95dec3c29-65321
+[INFO] [launch]: Default logging verbosity is set to INFO
+architecture_type                   := awf/universe
+autoware_launch_file                := planning_simulator.launch.xml
+autoware_launch_package             := autoware_launch
+consider_acceleration_by_road_slope := False
+consider_pose_by_road_slope         := True
+global_frame_rate                   := 30.0
+global_real_time_factor             := 1.0
+global_timeout                      := 180
+initialize_duration                 := 30
+launch_autoware                     := True
+launch_rviz                         := false
+output_directory                    := /autoware_map
+port                                := 5555
+record                              := false
+rviz_config                         := 
+scenario                            := /autoware_map/generated_scenarios/scenario_9.yaml
+sensor_model                        := sample_sensor_kit
+sigterm_timeout                     := 8
+use_sim_time                        := False
+vehicle_model                       := sample_vehicle
+[INFO] [scenario_test_runner.py-1]: process started with pid [65322]
+[INFO] [simple_sensor_simulator_node-2]: process started with pid [65324]
+[INFO] [openscenario_interpreter_node-3]: process started with pid [65326]
+[INFO] [openscenario_preprocessor_node-4]: process started with pid [65328]
+[INFO] [visualization_node-5]: process started with pid [65330]
+[scenario_test_runner.py-1] [INFO] [1748599502.355999964] [simulation.scenario_test_runner]: connection established with preprocessor
+[scenario_test_runner.py-1] [INFO] [1748599503.833473604] [simulation.scenario_test_runner]: Result of /simulation/openscenario_preprocessor/load: success
+[scenario_test_runner.py-1] [INFO] [1748599503.834136641] [simulation.scenario_test_runner]: Result of /simulation/openscenario_preprocessor/check: True
+[scenario_test_runner.py-1] [INFO] [1748599503.834756001] [simulation.scenario_test_runner]: derived : /autoware_map/scenario_test_runner/scenario_9/scenario_9.xosc
+[scenario_test_runner.py-1] [INFO] [1748599503.835293744] [simulation.scenario_test_runner]: Result of /simulation/openscenario_preprocessor/check: False
+[scenario_test_runner.py-1] [INFO] [1748599503.835571802] [simulation.scenario_test_runner]: finish derivation
+[scenario_test_runner.py-1] [INFO] [1748599503.835841448] [simulation.scenario_test_runner]: /autoware_map/scenario_test_runner/scenario_9/scenario_9.xosc
+[scenario_test_runner.py-1] [INFO] [1748599503.836119750] [simulation.scenario_test_runner]: Run scenario_9.xosc (1 of 1)
+[openscenario_interpreter_node-3] [INFO] [1748599526.315881531] [simulation.openscenario_interpreter]: [32mPassed[0m
+[scenario_test_runner.py-1] [INFO] [1748599526.336445326] [simulation.scenario_test_runner]: finish execution
+[scenario_test_runner.py-1] [INFO] [1748599526.336825557] [simulation.scenario_test_runner]: [33mShutdown interpreter.[0m
+[INFO] [scenario_test_runner.py-1]: process has finished cleanly [pid 65322]
+[INFO] [launch]: process[scenario_test_runner.py-1] was required: shutting down launched system
+[INFO] [visualization_node-5]: sending signal 'SIGINT' to process[visualization_node-5]
+[INFO] [openscenario_preprocessor_node-4]: sending signal 'SIGINT' to process[openscenario_preprocessor_node-4]
+[INFO] [openscenario_interpreter_node-3]: sending signal 'SIGINT' to process[openscenario_interpreter_node-3]
+[INFO] [simple_sensor_simulator_node-2]: sending signal 'SIGINT' to process[simple_sensor_simulator_node-2]
+[visualization_node-5] [INFO] [1748599526.795233231] [rclcpp]: signal_handler(signum=2)
+[openscenario_preprocessor_node-4] [INFO] [1748599526.795625906] [rclcpp]: signal_handler(signum=2)
+[openscenario_interpreter_node-3] [INFO] [1748599526.796066196] [rclcpp]: signal_handler(signum=2)
+[simple_sensor_simulator_node-2] [INFO] [1748599526.796507749] [rclcpp]: signal_handler(signum=2)
+[INFO] [visualization_node-5]: process has finished cleanly [pid 65330]
+[INFO] [simple_sensor_simulator_node-2]: process has finished cleanly [pid 65324]
+[INFO] [openscenario_preprocessor_node-4]: process has finished cleanly [pid 65328]
+[INFO] [openscenario_interpreter_node-3]: process has finished cleanly [pid 65326]

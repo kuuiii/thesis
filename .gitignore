@@ -1,0 +1,8 @@
+build/
+install/
+log/
+__pycache__/
+thesis/simulation_log.txt/
+simulation_results.csv/
+thesis/simulation_results/
+
