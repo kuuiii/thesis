@@ -97,7 +97,8 @@ def mutate_batch(params, seen: set,
     """
     new_params = []
     for param_tuple in params:
-        if random.random() < mutation_rate:
+        h0 = round_scenario_hash(param_tuple)
+        if h0 in seen or random.random() < mutation_rate:
             attempts = 0
             while True:
                 mutated = []

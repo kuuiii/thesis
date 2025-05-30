@@ -137,9 +137,21 @@ def evolve():
 
         # create next-gen population
         for i in range(POP_SIZE):
+            # Crossover step: combine top parents
             child_params = crossover_batches(top_params[0], top_params[1])
+
+            # If every offspring tuple has been seen before, force a 100% mutation for full novelty
+            if all(round_scenario_hash(t) in seen_hashes for t in child_params):
+                child_params = mutate_batch(
+                    child_params,
+                    seen=seen_hashes,
+                    mutation_rate=1.0  # mutate every scenario to guarantee change
+                )
+
+            # Standard mutation pass
             child_params = mutate_batch(child_params, seen=seen_hashes)
 
+            # write out scenarios
             child_dir = GENERATED_BASE / f"gen{gen}_batch{i}"
             if child_dir.exists():
                 shutil.rmtree(child_dir)
