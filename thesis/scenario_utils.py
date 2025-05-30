@@ -86,8 +86,8 @@ def crossover_batches(parent_batch_a, parent_batch_b, crossover_rate=0.5):
 
 def mutate_batch(params, seen: set,
                  mutation_rate: float = 0.80,       # mutate 30% of scenarios
-                 max_delta: float = 15.0,           # ±10 m shifts
-                 min_delta: float = 2.0,            # at least 1 m change
+                 max_delta: float = 10.0,           # ±10 m shifts
+                 min_delta: float = 1.0,            # at least 1 m change
                  lane_mutation_rate: float = 0.40   # 20% chance to swap lanes
                  ) -> list: 
     """
@@ -108,7 +108,27 @@ def mutate_batch(params, seen: set,
                         delta = random.uniform(-max_delta, max_delta)
                         if abs(delta) < min_delta:
                             delta = min_delta if delta >= 0 else -min_delta
-                        mutated.append(val + delta)
+                        mutated_val = val + delta
+
+                        # Clamp to valid range depending on lane
+                        if idx == 1:
+                            max_s = START_LANE_IDS[str(param_tuple[0])][1]
+                        elif idx == 3:
+                            max_s = START_LANE_IDS[str(param_tuple[2])][1]
+                        elif idx == 5:
+                            max_s = DEST_LANE_IDS[str(param_tuple[4])][1]
+                        elif idx == 7:
+                            max_s = DEST_LANE_IDS[str(param_tuple[6])][1]
+                        else:
+                            max_s = None
+
+                        if max_s is not None:
+                            mutated_val = max(0.0, min(mutated_val, max_s))
+                            # round to two decimal places:
+                            mutated_val = round(mutated_val, 2)
+
+                        mutated.append(mutated_val)
+
                     # Lane IDs mutated with small probability
                     else:
                         if idx in (0, 2) and random.random() < lane_mutation_rate:
