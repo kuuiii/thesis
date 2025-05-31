@@ -85,72 +85,93 @@ def crossover_batches(parent_batch_a, parent_batch_b, crossover_rate=0.5):
     return child_batch
 
 def mutate_batch(params, seen: set,
-                 mutation_rate: float = 0.80,       # mutate 30% of scenarios
+                 mutation_rate: float = 0.30,       # mutate 30% of scenarios
                  max_delta: float = 10.0,           # ±10 m shifts
-                 min_delta: float = 1.0,            # at least 1 m change
-                 lane_mutation_rate: float = 0.40   # 20% chance to swap lanes
+                 min_delta: float = 1.0,            # at least 2 m change
+                 lane_mutation_rate: float = 0.20   # 20% chance to swap lanes
                  ) -> list: 
     """
     Mutate each scenario parameter with a given probability, ensuring any float mutation
-    differs by at least min_delta, and optionally mutate lane IDs.
-    Also enforce within-batch uniqueness.
+    differs by at least min_delta, optionally mutate lane IDs, clamp to valid lane ranges,
+    and prevent Ego/NPC overlap on the same lane. Also enforce within-batch uniqueness.
     """
     new_params = []
     for param_tuple in params:
         h0 = round_scenario_hash(param_tuple)
+        # Force mutation if already seen, or randomly based on mutation_rate
         if h0 in seen or random.random() < mutation_rate:
             attempts = 0
             while True:
                 mutated = []
+                # Step 1: Mutate each element in the tuple
                 for idx, val in enumerate(param_tuple):
-                    # Float positions mutated by delta
                     if isinstance(val, float):
+                        # Float mutation with min_delta enforcement
                         delta = random.uniform(-max_delta, max_delta)
                         if abs(delta) < min_delta:
                             delta = min_delta if delta >= 0 else -min_delta
                         mutated_val = val + delta
 
                         # Clamp to valid range depending on lane
-                        if idx == 1:
+                        if idx == 1:    # ego_start_s
                             max_s = START_LANE_IDS[str(param_tuple[0])][1]
-                        elif idx == 3:
+                        elif idx == 3:  # npc_start_s
                             max_s = START_LANE_IDS[str(param_tuple[2])][1]
-                        elif idx == 5:
+                        elif idx == 5:  # ego_dest_s
                             max_s = DEST_LANE_IDS[str(param_tuple[4])][1]
-                        elif idx == 7:
+                        elif idx == 7:  # npc_dest_s
                             max_s = DEST_LANE_IDS[str(param_tuple[6])][1]
                         else:
                             max_s = None
 
                         if max_s is not None:
                             mutated_val = max(0.0, min(mutated_val, max_s))
-                            # round to two decimal places:
-                            mutated_val = round(mutated_val, 2)
+                        # Round to one decimal to avoid overly precise floats
+                        mutated_val = round(mutated_val, 1)
 
                         mutated.append(mutated_val)
-
-                    # Lane IDs mutated with small probability
                     else:
+                        # Lane ID mutation with lane_mutation_rate
                         if idx in (0, 2) and random.random() < lane_mutation_rate:
                             mutated.append(random.choice(list(START_LANE_IDS.keys())))
                         elif idx in (4, 6) and random.random() < lane_mutation_rate:
                             mutated.append(random.choice(list(DEST_LANE_IDS.keys())))
                         else:
                             mutated.append(val)
+
                 mutated_tuple = tuple(mutated)
                 h = round_scenario_hash(mutated_tuple)
                 attempts += 1
-                if h not in seen:
-                    seen.add(h)
-                    new_params.append(mutated_tuple)
-                    break
-                if attempts > 10:
-                    new_params.append(param_tuple)
-                    break
+
+                # Step 2: Check for global uniqueness
+                if h in seen:
+                    if attempts > 10:
+                        # Give up after 10 tries, keep original
+                        new_params.append(param_tuple)
+                        break
+                    else:
+                        continue
+
+                # Step 3: Prevent overlap if Ego and NPC share the same lane
+                ego_lane, ego_s, npc_lane, npc_s = mutated_tuple[0], mutated_tuple[1], mutated_tuple[2], mutated_tuple[3]
+                if ego_lane == npc_lane and positions_overlap(ego_s, EGO_LENGTH, npc_s, NPC_LENGTH):
+                    # They overlap on same lane → reject and retry
+                    if attempts > 10:
+                        new_params.append(param_tuple)
+                        break
+                    else:
+                        continue
+
+                # If we reach here, it's a valid new mutation
+                seen.add(h)
+                new_params.append(mutated_tuple)
+                break
+
         else:
+            # No mutation needed; keep the original
             new_params.append(param_tuple)
 
-    # Enforce within-batch uniqueness and fill if needed
+    # Enforce within-batch uniqueness and refill if needed
     unique = []
     local_hashes = set()
     for p in new_params:
@@ -158,7 +179,7 @@ def mutate_batch(params, seen: set,
         if h not in local_hashes:
             unique.append(p)
             local_hashes.add(h)
-    # refill batch if too few
+
     idx = 0
     while len(unique) < len(params):
         candidate = params[idx % len(params)]
@@ -167,6 +188,7 @@ def mutate_batch(params, seen: set,
             unique.append(candidate)
             local_hashes.add(h)
         idx += 1
+
     return unique
 
 def round_scenario_hash(params):

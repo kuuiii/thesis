@@ -32,19 +32,35 @@ def positions_overlap(s1, l1, s2, l2, buffer=1.0):
     return not (front1 + buffer < rear2 or front2 + buffer < rear1)
 
 def sample_non_overlapping_positions():
+    """
+    Randomly pick ego and npc lanes, then sample ego_s and npc_s such that they do not overlap.
+    """
+    # 1) Choose two distinct start lanes
     ego_lane = random.choice(list(START_LANE_IDS.keys()))
     npc_lane_choices = [l for l in START_LANE_IDS if l != ego_lane]
     npc_lane = random.choice(npc_lane_choices)
 
-    ego_s_range = START_LANE_IDS[ego_lane]
-    npc_s_range = START_LANE_IDS[npc_lane]
+    # 2) Determine s‐ranges for each
+    ego_s_min, ego_s_max = START_LANE_IDS[ego_lane]
+    npc_s_min, npc_s_max = START_LANE_IDS[npc_lane]
 
-    # Aim to spawn near the higher end of the lane (closer to intersection)
-    ego_base = ego_s_range[1] - 5.0
-    npc_base = npc_s_range[1] - 5.0
+    # 3) Aim to spawn nearer the “far end” (just an example strategy)
+    ego_base = max(ego_s_max - 8.0, ego_s_min)
+    npc_base = max(npc_s_max - 8.0, npc_s_min)
 
-    ego_s = round(random.uniform(max(ego_base, ego_s_range[0]), ego_s_range[1]), 2)
-    npc_s = round(random.uniform(max(npc_base, npc_s_range[0]), npc_s_range[1]), 2)
+    # 4) Sample ego_s once
+    ego_s = round(random.uniform(ego_base, ego_s_max), 2)
+
+    # 5) Now sample npc_s, but re‐draw if it overlaps Ego on the same lane:
+    while True:
+        npc_s_candidate = round(random.uniform(npc_base, npc_s_max), 2)
+
+        # Only check overlap if they're on the same lane
+        if ego_lane == npc_lane and positions_overlap(ego_s, EGO_LENGTH, npc_s_candidate, NPC_LENGTH):
+            continue   # same lane & overlap → retry
+        else:
+            npc_s = npc_s_candidate
+            break
 
     return ego_lane, ego_s, npc_lane, npc_s
 

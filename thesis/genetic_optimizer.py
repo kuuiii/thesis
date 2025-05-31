@@ -15,7 +15,7 @@ from pathlib import Path
 # === Configurations ===
 POP_SIZE = 10
 SCENARIOS_PER_BATCH = 20
-GENERATIONS = 8
+GENERATIONS = 5
 TEMPLATE = "/autoware_map/template.yaml"
 
 # Directories for scenario batches and results
